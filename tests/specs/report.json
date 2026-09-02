@@ -1,0 +1,20 @@
+[
+  {
+    "name": "/report",
+    "steps": [
+      {
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "View weekly recap and metrics"
+            }
+          }
+        ],
+        "send": {
+          "text": "/report"
+        }
+      }
+    ]
+  }
+]
