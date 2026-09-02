@@ -1,20 +1,3 @@
 [
-  {
-    "name": "Done",
-    "steps": [
-      {
-        "expect": [
-          {
-            "method": "sendMessage",
-            "payload": {
-              "text": "Mark current reminder as done"
-            }
-          }
-        ],
-        "send": {
-          "callback": "check_in:done"
-        }
-      }
-    ]
-  }
+  { "name": "done without a valid reminder is safe", "steps": [{ "send": { "callback": "check_in:done" }, "expect": [{ "method": "sendMessage", "payload": { "text": "That reminder is no longer available. Open My habits to check in." } }] }] }
 ]

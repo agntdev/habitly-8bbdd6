@@ -1,20 +1,3 @@
 [
-  {
-    "name": "Skip",
-    "steps": [
-      {
-        "expect": [
-          {
-            "method": "sendMessage",
-            "payload": {
-              "text": "Mark current reminder as skipped"
-            }
-          }
-        ],
-        "send": {
-          "callback": "check_in:skip"
-        }
-      }
-    ]
-  }
+  { "name": "skip without a valid reminder is safe", "steps": [{ "send": { "callback": "check_in:skip" }, "expect": [{ "method": "sendMessage", "payload": { "text": "That reminder is no longer available. Open My habits to check in." } }] }] }
 ]

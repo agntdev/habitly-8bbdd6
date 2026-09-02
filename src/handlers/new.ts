@@ -1,15 +1,27 @@
 import { Composer } from "grammy";
-
-// SCAFFOLD — generated from the bot blueprint BEFORE the agent runs.
-// Keep a LIVE registration (.command / .callbackQuery / …) so this feature is
-// never an empty stub. Replace the reply body with real logic + copy; if you
-// change the user-facing text, update tests/specs to match EXACTLY.
-// Do NOT rewrite src/bot.ts — buildBot() already auto-loads this module.
-
-const composer = new Composer();
-
-composer.command("new", async (ctx) => {
-  await ctx.reply("Start creating a new habit");
-});
-
+import type { Ctx, Cadence } from "../bot.js";
+import { registerMainMenuItem, inlineButton, inlineKeyboard } from "../toolkit/index.js";
+import { cadenceText, createHabit, data, now, validTimezone } from "../habits.js";
+import { reminderKeyboard } from "../habits.js";
+import { remindAt } from "../toolkit/session/durable.js";
+import type { WorkerEnv } from "../toolkit/session/durable.js";
+registerMainMenuItem({ label: "➕ New habit", data: "habit:new", order: 10 });
+registerMainMenuItem({ label: "Timezone", data: "timezone:choose", order: 40 });
+const composer = new Composer<Ctx>();
+function titlePrompt(ctx: Ctx) { ctx.session.step = "title"; ctx.session.draft = {}; return ctx.reply("What habit would you like to build? Type a short name."); }
+function cadencePrompt(ctx: Ctx) { ctx.session.step = "cadence"; return ctx.reply("How often should you do it?", { reply_markup: inlineKeyboard([[inlineButton("Every day", "habit:cadence:daily")], [inlineButton("Specific weekdays", "habit:cadence:weekdays")], [inlineButton("N times a week", "habit:cadence:times")]]) }); }
+function timePrompt(ctx: Ctx) { ctx.session.step = "time"; return ctx.reply("What local time should I remind you? Send it like 08:30."); }
+function summary(ctx: Ctx) { const d = ctx.session.draft!; ctx.session.step = "confirm"; return ctx.reply(`Your habit: ${d.title}\n${cadenceText(d.cadence!)} at ${d.time} (${data(ctx).timezone})`, { reply_markup: inlineKeyboard([[inlineButton("Confirm", "habit:confirm"), inlineButton("Cancel", "habit:cancel")]]) }); }
+composer.callbackQuery("habit:new", async (ctx) => { await ctx.answerCallbackQuery(); await titlePrompt(ctx); });
+composer.callbackQuery("onboard:new", async (ctx) => { await ctx.answerCallbackQuery(); await titlePrompt(ctx); });
+composer.on("message:text", async (ctx, next) => { const text = ctx.message.text.trim(); if (ctx.session.step === "timezone") { if (!validTimezone(text)) return void await ctx.reply("I couldn’t use that timezone. Try one like Europe/London or America/New_York."); data(ctx).timezone = text; await ctx.reply(`Got it — reminders will use ${text}. Now let’s name your first habit.`, { reply_markup: inlineKeyboard([[inlineButton("Create habit", "onboard:new")]]) }); return; } if (ctx.session.step === "title") { if (!text || text.length > 80) return void await ctx.reply("Keep the habit name between 1 and 80 characters."); ctx.session.draft!.title = text; await cadencePrompt(ctx); return; } if (ctx.session.step === "weekdays") { const days = text.split(",").map((x) => Number(x.trim())).filter((n) => Number.isInteger(n) && n >= 1 && n <= 7); if (!days.length) return void await ctx.reply("Send weekday numbers, like 1, 3, 5 for Monday, Wednesday, Friday."); ctx.session.draft!.cadence = { kind: "weekdays", days: [...new Set(days)] }; await timePrompt(ctx); return; } if (ctx.session.step === "frequency") { const count = Number(text); if (!Number.isInteger(count) || count < 1 || count > 7) return void await ctx.reply("Choose a whole number from 1 to 7."); ctx.session.draft!.cadence = { kind: "times", count }; await timePrompt(ctx); return; } if (ctx.session.step === "time") { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(text)) return void await ctx.reply("Use a 24-hour time like 08:30."); ctx.session.draft!.time = text; await summary(ctx); return; } return next(); });
+composer.callbackQuery(/^timezone:(.+)$/, async (ctx) => { await ctx.answerCallbackQuery(); const zone = ctx.match[1]; if (zone === "choose") { ctx.session.step = "timezone"; await ctx.reply("Send your timezone, like Europe/London or America/New_York."); return; } data(ctx).timezone = zone; ctx.session.step = undefined; await ctx.reply(`Got it — reminders will use ${zone}. Tap Create habit when you’re ready.`, { reply_markup: inlineKeyboard([[inlineButton("Create habit", "onboard:new")]]) }); });
+composer.callbackQuery(/^habit:cadence:(daily|weekdays|times)$/, async (ctx) => { await ctx.answerCallbackQuery(); const kind = ctx.match[1]; if (kind === "daily") { ctx.session.draft!.cadence = { kind: "daily" }; await timePrompt(ctx); } else if (kind === "weekdays") { ctx.session.step = "weekdays"; await ctx.reply("Which days? Send numbers 1–7 separated by commas (1 is Monday)."); } else { ctx.session.step = "frequency"; await ctx.reply("How many times each week? Send a number from 1 to 7."); } });
+function nextReminder(time: string, timezone: string): number {
+  const target = time; const base = now().getTime();
+  for (let minute = 1; minute <= 1440; minute++) { const candidate = new Date(base + minute * 60_000); const local = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(candidate); if (local === target) return candidate.getTime(); }
+  return base + 24 * 60 * 60_000;
+}
+composer.callbackQuery("habit:confirm", async (ctx) => { await ctx.answerCallbackQuery(); const h = createHabit(ctx); if (!h) return void await ctx.reply("That draft is incomplete. Tap New habit to start again."); const env = (ctx as Ctx & { env?: WorkerEnv }).env; if (env?.CHAT_DO && ctx.chat) await remindAt(env, ctx.chat.id, nextReminder(h.reminderTime, data(ctx).timezone), `Time for ${h.title}.`, reminderKeyboard(h, `${h.id}:first`)); await ctx.reply(`You’re all set for ${h.title}. I’ll remind you at ${h.reminderTime} in ${data(ctx).timezone}.`); });
+composer.callbackQuery("habit:cancel", async (ctx) => { await ctx.answerCallbackQuery(); ctx.session.draft = undefined; ctx.session.step = undefined; await ctx.reply("No habit was saved. Tap New habit whenever you’re ready."); });
 export default composer;

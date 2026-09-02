@@ -1,20 +1,23 @@
 [
   {
-    "name": "/new",
+    "name": "new habit flow creates a daily habit",
     "steps": [
-      {
-        "expect": [
-          {
-            "method": "sendMessage",
-            "payload": {
-              "text": "Start creating a new habit"
-            }
-          }
-        ],
-        "send": {
-          "text": "/new"
-        }
-      }
+      { "send": { "text": "/start" }, "expect": [{ "method": "sendMessage", "payload": { "text": "Welcome — let’s make room for one small habit. Your timezone helps reminders arrive at the right local time." } }] },
+      { "send": { "callback": "timezone:UTC" }, "expect": [{ "method": "sendMessage", "payload": { "text": "Got it — reminders will use UTC. Tap Create habit when you’re ready." } }] },
+      { "send": { "callback": "onboard:new" }, "expect": [{ "method": "sendMessage", "payload": { "text": "What habit would you like to build? Type a short name." } }] },
+      { "send": { "text": "Read" }, "expect": [{ "method": "sendMessage", "payload": { "text": "How often should you do it?" } }] },
+      { "send": { "callback": "habit:cadence:daily" }, "expect": [{ "method": "sendMessage", "payload": { "text": "What local time should I remind you? Send it like 08:30." } }] },
+      { "send": { "text": "08:30" }, "expect": [{ "method": "sendMessage", "payload": { "text": "Your habit: Read\nEvery day at 08:30 (UTC)" } }] },
+      { "send": { "callback": "habit:confirm" }, "expect": [{ "method": "sendMessage", "payload": { "text": "You’re all set for Read. I’ll remind you at 08:30 in UTC." } }] },
+      { "send": { "callback": "check_in:done:1:1:first" }, "expect": [{ "method": "sendMessage", "payload": { "text": "Done — Read is on your streak." } }] }
+    ]
+  },
+  {
+    "name": "timezone accepts an IANA local timezone",
+    "steps": [
+      { "send": { "text": "/start" }, "expect": [{ "method": "sendMessage" }] },
+      { "send": { "callback": "timezone:choose" }, "expect": [{ "method": "sendMessage", "payload": { "text": "Send your timezone, like Europe/London or America/New_York." } }] },
+      { "send": { "text": "Europe/London" }, "expect": [{ "method": "sendMessage", "payload": { "text": "Got it — reminders will use Europe/London. Now let’s name your first habit." } }] }
     ]
   }
 ]

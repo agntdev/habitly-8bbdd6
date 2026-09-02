@@ -1,20 +1,3 @@
 [
-  {
-    "name": "Remind me later (15m)",
-    "steps": [
-      {
-        "expect": [
-          {
-            "method": "sendMessage",
-            "payload": {
-              "text": "Postpone current reminder by 15 minutes"
-            }
-          }
-        ],
-        "send": {
-          "callback": "check_in:remind_later"
-        }
-      }
-    ]
-  }
+  { "name": "postpone without a valid reminder is safe", "steps": [{ "send": { "callback": "check_in:remind_later" }, "expect": [{ "method": "sendMessage", "payload": { "text": "That reminder is no longer available. Open My habits to check in." } }] }] }
 ]

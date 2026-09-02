@@ -1,20 +1,3 @@
 [
-  {
-    "name": "/list",
-    "steps": [
-      {
-        "expect": [
-          {
-            "method": "sendMessage",
-            "payload": {
-              "text": "View all habits and their status"
-            }
-          }
-        ],
-        "send": {
-          "text": "/list"
-        }
-      }
-    ]
-  }
+  { "name": "habits list has an encouraging empty state", "steps": [{ "send": { "callback": "habits:list" }, "expect": [{ "method": "editMessageText", "payload": { "text": "No habits yet — tap New habit to create one." } }] }] }
 ]

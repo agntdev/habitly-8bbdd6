@@ -1,17 +1,15 @@
 import { Composer } from "grammy";
+import type { Ctx } from "../bot.js";
+import { habit, record } from "../habits.js";
 
-// SCAFFOLD — generated from the bot blueprint BEFORE the agent runs.
-// Keep a LIVE registration (.command / .callbackQuery / …) so this feature is
-// never an empty stub. Replace the reply body with real logic + copy; if you
-// change the user-facing text, update tests/specs to match EXACTLY.
-// Do NOT rewrite src/bot.ts — buildBot() already auto-loads this module.
-// Menu: wire this into /start via registerMainMenuItem({ label: "Done", data: "check_in:done" }) if the toolkit exposes it.
+const composer = new Composer<Ctx>();
 
-const composer = new Composer();
-
-composer.callbackQuery("check_in:done", async (ctx) => {
+composer.callbackQuery(/^check_in:done(?::(\d+):(.+))?$/, async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ctx.reply("Mark current reminder as done");
+  const h = habit(ctx, ctx.match[1]);
+  if (!h) return void await ctx.reply("That reminder is no longer available. Open My habits to check in.");
+  if (!record(ctx, h, "done", ctx.match[2])) return void await ctx.reply("You already checked in for this reminder. Nice work.");
+  await ctx.reply(`Done — ${h.title} is on your streak.`);
 });
 
 export default composer;
