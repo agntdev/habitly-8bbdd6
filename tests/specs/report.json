@@ -1,20 +1,3 @@
 [
-  {
-    "name": "/report",
-    "steps": [
-      {
-        "expect": [
-          {
-            "method": "sendMessage",
-            "payload": {
-              "text": "View weekly recap and metrics"
-            }
-          }
-        ],
-        "send": {
-          "text": "/report"
-        }
-      }
-    ]
-  }
+  { "name": "weekly recap handles no habits", "steps": [{ "send": { "callback": "habits:report" }, "expect": [{ "method": "editMessageText", "payload": { "text": "No weekly recap yet — create a habit and your progress will appear here." } }] }] }
 ]

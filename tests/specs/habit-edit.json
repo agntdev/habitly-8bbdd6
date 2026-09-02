@@ -1,20 +1,3 @@
 [
-  {
-    "name": "Edit",
-    "steps": [
-      {
-        "expect": [
-          {
-            "method": "sendMessage",
-            "payload": {
-              "text": "Edit a selected habit"
-            }
-          }
-        ],
-        "send": {
-          "callback": "habit:edit"
-        }
-      }
-    ]
-  }
+  { "name": "edit needs a selected habit", "steps": [{ "send": { "callback": "habit:edit" }, "expect": [{ "method": "sendMessage", "payload": { "text": "Choose a habit from My habits first." } }] }] }
 ]

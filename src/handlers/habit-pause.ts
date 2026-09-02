@@ -1,17 +1,15 @@
 import { Composer } from "grammy";
+import type { Ctx } from "../bot.js";
+import { habit } from "../habits.js";
 
-// SCAFFOLD — generated from the bot blueprint BEFORE the agent runs.
-// Keep a LIVE registration (.command / .callbackQuery / …) so this feature is
-// never an empty stub. Replace the reply body with real logic + copy; if you
-// change the user-facing text, update tests/specs to match EXACTLY.
-// Do NOT rewrite src/bot.ts — buildBot() already auto-loads this module.
-// Menu: wire this into /start via registerMainMenuItem({ label: "Pause", data: "habit:pause" }) if the toolkit exposes it.
+const composer = new Composer<Ctx>();
 
-const composer = new Composer();
-
-composer.callbackQuery("habit:pause", async (ctx) => {
+composer.callbackQuery(/^habit:pause(?::(\d+))?$/, async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ctx.reply("Pause a selected habit");
+  const h = habit(ctx, ctx.match[1]);
+  if (!h) return void await ctx.reply("Choose a habit from My habits first.");
+  h.paused = !h.paused;
+  await ctx.reply(h.paused ? `${h.title} is paused. Come back when it feels right.` : `${h.title} is active again. I’ll keep your reminder time.`);
 });
 
 export default composer;

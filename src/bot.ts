@@ -6,8 +6,16 @@ import type { StorageAdapter } from "grammy";
 // bot grows. Durable domain data must NOT live here — use the toolkit's
 // persistent storage (see AGENTS.md).
 export interface Session {
-  // example: step?: "awaiting_amount";
+  step?: "timezone" | "title" | "cadence" | "weekdays" | "frequency" | "time" | "confirm" | "edit_title" | "edit_time";
+  draft?: { title?: string; cadence?: Cadence; time?: string; editHabitId?: string };
+  /** Stored by the toolkit's production Redis/DO session adapter; never shared. */
+  habitData?: HabitData;
 }
+
+export type Cadence = { kind: "daily" } | { kind: "weekdays"; days: number[] } | { kind: "times"; count: number };
+export interface Habit { id: string; title: string; cadence: Cadence; reminderTime: string; paused: boolean; createdAt: string; }
+export interface CheckIn { occurrence: string; habitId: string; date: string; status: "done" | "skipped"; }
+export interface HabitData { timezone: string; habits: Habit[]; checkIns: CheckIn[]; nextId: number; }
 
 export type Ctx = BotContext<Session>;
 
